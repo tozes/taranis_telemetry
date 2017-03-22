@@ -1,6 +1,5 @@
 # Telemetry script for taranis.
 
-![Telemetry screen][screenshot]
-[screenshot]: http://i.imgur.com/Syrhw7Rl.jpg "Screenshot"
+![screenshot](http://i.imgur.com/Syrhw7Rl.jpg)
 
-
+[intoFPV forum thread](http://intofpv.com/t-taranis-custom-telemetry-screens)
