@@ -14,7 +14,7 @@ local min_x, min_y = 0, 0
 -- bottom right pixel coordinates
 local max_x, max_y = 128, 63 
 -- set to create a header, the grid will adjust automatically but not its content
-local header_height = 0 
+local header_height = 0  
 -- set the grid left and right coordinates; leave space left and right for batt and rssi
 local grid_limit_left, grid_limit_right = 20, 108 
 -- calculated grid dimensions
@@ -26,6 +26,9 @@ local cell_height = round(grid_height / 3, 0)
 -- Batt
 local max_batt = 4.2
 local min_batt = 3.3
+local total_max_bat = 0
+local total_min_bat = 5
+local total_max_curr = 0
 
 -- RSSI
 local max_rssi = 90
@@ -41,6 +44,7 @@ local SW_BEEPR = 'sa'
 
 -- Data Sources
 local DS_VFAS = 'VFAS'
+local DS_AMP = 'Curr+'
 local DS_CELL = 'A4'
 local DS_CELL_MIN = 'A4-'
 local DS_RSSI = 'RSSI'
@@ -65,16 +69,51 @@ local function drawGrid(lines, cols)
 end
 
 -- Draw the battery indicator
-  local function drawBatt()
+local function drawBatt()
   local batt = getValue(DS_VFAS)
   local cell = getValue(DS_CELL)
-  local cell_count = math.floor(batt/cell)
-  local cell = batt/cell_count
-  -- Calculate the size of the level
+  local curr = getValue(DS_AMP)
+  local data_min_batt = getValue(DS_CELL_MIN)
+
+  if total_max_bat<batt then
+    if batt<10 then
+      total_max_bat=round(batt, 2)
+    else
+      total_max_bat=round(batt, 1)
+    end 
+  end
+  local cell_count = 0
+  if batt>0 then
+        cell_count = math.floor(batt/cell)
+  end
+        -- local cell = batt/cell_count
+
+  if cell_count~=1 or cell_count~=2 or cell_count~=3 or cell_count~=4 or cell_count~=5 or cell_count~=6 then
+    cell = batt/cell_count
+  end
+  if cell_count==0 then
+    cell = 0
+  end
+  if total_max_curr<curr then
+     total_max_curr = curr
+  end
+  if data_min_batt>0 and total_min_bat > 0 then   
+    if total_min_bat>cell then
+      total_min_bat = cell
+    end
+  end
+    
+-- Calculate the size of the level
   local total_steps = 30 
   local range = max_batt - min_batt
   local step_size = range/total_steps
   local current_level = math.floor(total_steps - ((cell - min_batt) / step_size))
+  if current_level>30 then
+    current_level=30
+  end
+  if current_level<0 then
+    current_level=0
+  end
     --draw graphic battery level
   lcd.drawFilledRectangle(6, 2, 8, 4, SOLID)
   lcd.drawFilledRectangle(3, 5, 14, 32, SOLID)
@@ -82,7 +121,6 @@ end
     
   -- Values
   lcd.drawText(2, 39, round(cell, 2),SMLSIZE)
-    
   if batt<10 then
     lcd.drawText(2, 48, round(batt, 2),SMLSIZE)
   else
@@ -91,12 +129,11 @@ end
   
     
   lcd.drawText(1, 57, "Vbat", INVERS+SMLSIZE)
-  -- Calculate and display the battery cell count (3S, 4S)
-  if (cell_count > 0) then 
+  -- Calculate and display the battery cell count (3S, 4S,...)
     lcd.drawText(grid_limit_left + 4, min_y + header_height + cell_height * 2 + 3, cell_count .. "S", DBLSIZE)
-    lcd.drawText(grid_limit_left + 29, min_y + header_height + cell_height * 2 + 3, max_batt)
-    lcd.drawText(grid_limit_left + 29, min_y + header_height + cell_height * 2 + 3 + 9, min_batt)
-  end
+    lcd.drawText(grid_limit_left + 27, min_y + header_height + cell_height * 2 + 3, round(total_min_bat,2))
+    lcd.drawText(grid_limit_left + 27, min_y + header_height + cell_height * 2 + 3 + 9, round(total_max_curr,2))
+
 end
 
 local function drawRSSI()
@@ -160,11 +197,7 @@ local function cell_2()
   end
 
   if (airmode < -10 and failsafe < 0) then
-        if (fm > -10 and failsafe < 0) then
-        lcd.drawText(x1 + 25, y1 + 2, "Air", INVERS+SMLSIZE)
-        elseif (failsafe < 0) then
         lcd.drawText(x1 + 25, y1 + 2, "Air", SMLSIZE)
-        end
   elseif (failsafe < 0) then
         lcd.drawText(x1 + 25, y1 + 2, "Air", INVERS+SMLSIZE)
   end
@@ -237,4 +270,4 @@ local function run(event)
   drawGrid()
 end
 
-return{run=run}
+return{run=run, init=init_func}
