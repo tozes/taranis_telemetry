@@ -155,7 +155,13 @@ local function drawRSSI()
   lcd.drawFilledRectangle(112, 5, 12, current_level, ERASE)
 
   -- Display durrent RSSI value
+
+  if (rssi==100) then
+  lcd.drawText(111, 42, round(rssi, 0))
+  else
   lcd.drawText(110, 38, round(rssi, 0), DBLSIZE)
+  end
+  
   lcd.drawText(109, 57, "rssi", INVERS+SMLSIZE)
 end
 
